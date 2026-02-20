@@ -3,10 +3,10 @@ from pyspark.sql import SparkSession
 
 
 def main() -> None:
-    spark = (SparkSession.builder.appName("Appto_SnowFlake").getOrCreate(),)
+    spark = SparkSession.builder.appName("Appto_SnowFlake").getOrCreate()
 
     # Read Postgres Data
-    jdbc_url = os.getenv("POSTGRES_URL")
+    jdbc_url = str(os.getenv("POSTGRES_URL"))
 
     connection_properties = {
         "user": os.getenv("POSTGRES_USER"),
@@ -14,12 +14,10 @@ def main() -> None:
         "driver": "org.postgresql.Driver",
     }
 
-    df = (
-        spark.read.jdbc(
-            url=jdbc_url,
-            table="user",
-            properties=connection_properties,
-        ),
+    df = spark.read.jdbc(
+        url=jdbc_url,
+        table="user",
+        properties=connection_properties,
     )
 
     print("Data Extracted from Application")
