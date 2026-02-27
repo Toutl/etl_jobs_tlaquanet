@@ -25,7 +25,7 @@ def main(table: str) -> None:
 
     # Write Data to Snowflake
     sfOptions = {
-        "sfURL": f"{os.getenv("SNOWFLAKE_ACCOUNT")}.snowflakecomputing.com",
+        "sfURL": f"{os.getenv('SNOWFLAKE_ACCOUNT')}.snowflakecomputing.com",
         "sfUser": os.getenv("SNOWFLAKE_USER"),
         "sfPassword": os.getenv("SNOWFLAKE_PASSWORD"),
         "sfWarehouse": os.getenv("SNOWFLAKE_WAREHOUSE"),
