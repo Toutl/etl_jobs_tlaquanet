@@ -3,7 +3,8 @@ FROM apache/spark:3.5.0
 USER root
 
 RUN mkdir -p /home/spark/.ivy2/cache && \
-    chown -R spark:spark /home/spark
+    chown -R spark:spark /home/spark && \
+    pip install snowflake-connector-python
 
 USER spark
 
