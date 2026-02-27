@@ -17,13 +17,15 @@ def get_postgres_df(spark, table_name):
         "driver": "org.postgresql.Driver",
     }
 
-    print("Data Extracted from Application")
-
-    return spark.read.jdbc(
+    df = spark.read.jdbc(
         url=jdbc_url,
         table=table_name,
         properties=connection_properties,
     )
+
+    print("Data Extracted from Application")
+
+    return df
 
 
 def write_to_snowflake(df, table_name, mode="append"):
@@ -32,12 +34,10 @@ def write_to_snowflake(df, table_name, mode="append"):
         "sfURL": f"{os.getenv("SNOWFLAKE_ACCOUNT")}.snowflakecomputing.com",
         "sfUser": os.getenv("SNOWFLAKE_USER"),
         "sfPassword": os.getenv("SNOWFLAKE_PASSWORD"),
+        "sfWarehouse": os.getenv("SNOWFLAKE_WAREHOUSE"),
         "sfDatabase": os.getenv("SNOWFLAKE_DATABASE"),
         "sfSchema": os.getenv("SNOWFLAKE_SCHEMA"),
-        "sfWarehouse": os.getenv("SNOWFLAKE_"),
     }
-
-    print("Data Written to Snowflake")
 
     (
         df.write.format("snowflake")
@@ -46,6 +46,8 @@ def write_to_snowflake(df, table_name, mode="append"):
         .mode(mode)
         .save()
     )
+
+    print("Data Written to Snowflake")
 
     return None
 
@@ -61,7 +63,33 @@ def run_scd2_merge():
     )
 
     merge_sql = """
-                CREATE
+                MERGE INTO dim_users AS tgt
+                USING stg_users AS src
+                    ON tgt.user_id = src.user_id
+                    AND tgt.is_current = TRUE
+                WHEN MATCHED AND tgt.display_name <> src.display_name THEN
+                    UPDATE SET
+                        tgt.to_date = CURRENT_TIMESTAMP(),
+                        tgt.is_current = FALSE
+                WHEN NOT MATCHED THEN
+                    INSERT (
+                        user_id,
+                        username,
+                        display_name,
+                        created_at,
+                        from_date,
+                        to_date,
+                        is_current
+                    )
+                    VALUES(
+                        src.user_id,
+                        src.username,
+                        src.display_name,
+                        src.created_at,
+                        CURRENT_TIMESTAMP(),
+                        NULL,
+                        TRUE
+                    );
                 """
 
     conn.cursor().execute(merge_sql)
@@ -75,17 +103,11 @@ def main():
     # Load Fact Tables: comments, events, likes, posts
     ###
     fact_tables = ["comments", "events", "likes", "posts"]
-    fact_tables_analytics = [
-        "comments_analytics",
-        "events_analytics",
-        "likes_analytics",
-        "posts_analytics",
-    ]
 
-    for table, table_analytics in zip(fact_tables, fact_tables_analytics):
+    for table in fact_tables:
         print(f"Loading {table} ...")
         df = get_postgres_df(spark, table)
-        write_to_snowflake(df, table_analytics)
+        write_to_snowflake(df, table)
 
     ###
     # Load Users to Staging

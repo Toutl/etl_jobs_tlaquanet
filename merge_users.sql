@@ -1,8 +1,7 @@
-MERGE INTO dim_users tgt
-USING stg_users src
-ON tgt.user_id = src.user_id
-AND tgt.is_current = TRUE
-
+MERGE INTO dim_users AS tgt
+USING stg_users AS src
+    ON tgt.user_id = src.user_id
+    AND tgt.is_current = TRUE
 WHEN MATCHED AND tgt.display_name <> src.display_name THEN
     UPDATE SET
         tgt.to_date = CURRENT_TIMESTAMP(),
