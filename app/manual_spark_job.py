@@ -28,9 +28,9 @@ def main(table: str) -> None:
         "sfURL": f"{os.getenv("SNOWFLAKE_ACCOUNT")}.snowflakecomputing.com",
         "sfUser": os.getenv("SNOWFLAKE_USER"),
         "sfPassword": os.getenv("SNOWFLAKE_PASSWORD"),
+        "sfWarehouse": os.getenv("SNOWFLAKE_WAREHOUSE"),
         "sfDatabase": os.getenv("SNOWFLAKE_DATABASE"),
         "sfSchema": os.getenv("SNOWFLAKE_SCHEMA"),
-        "sfWarehouse": os.getenv("SNOWFLAKE_"),
     }
 
     (
