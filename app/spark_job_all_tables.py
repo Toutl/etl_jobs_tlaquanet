@@ -17,15 +17,13 @@ def get_postgres_df(spark, table_name):
         "driver": "org.postgresql.Driver",
     }
 
-    df = spark.read.jdbc(
+    print(f"Extracting {table_name} from Postgres...")
+
+    return spark.read.jdbc(
         url=jdbc_url,
         table=table_name,
         properties=connection_properties,
     )
-
-    print("Data Extracted from Application")
-
-    return df
 
 
 def write_to_snowflake(df, table_name, mode="append"):
@@ -47,12 +45,20 @@ def write_to_snowflake(df, table_name, mode="append"):
         .save()
     )
 
-    print("Data Written to Snowflake")
+    print(f"Writing {table_name} to Snowflake...")
 
     return None
 
 
 def run_scd2_merge():
+    # Read SQL from file
+    sql_path = "/app/merge_users.sql"
+    if not os.path.exists(sql_path):
+        sql_path = "app/merge_users.sql"
+
+    with open(sql_path, "r") as f:
+        merge_sql = f.read()
+
     conn = snowflake.connector.connect(
         user=os.getenv("SNOWFLAKE_USER"),
         password=os.getenv("SNOWFLAKE_PASSWORD"),
@@ -62,36 +68,7 @@ def run_scd2_merge():
         schema=os.getenv("SNOWFLAKE_SCHEMA"),
     )
 
-    merge_sql = """
-                MERGE INTO dim_users AS tgt
-                USING stg_users AS src
-                    ON tgt.user_id = src.user_id
-                    AND tgt.is_current = TRUE
-                WHEN MATCHED AND tgt.display_name <> src.display_name THEN
-                    UPDATE SET
-                        tgt.to_date = CURRENT_TIMESTAMP(),
-                        tgt.is_current = FALSE
-                WHEN NOT MATCHED THEN
-                    INSERT (
-                        user_id,
-                        username,
-                        display_name,
-                        created_at,
-                        from_date,
-                        to_date,
-                        is_current
-                    )
-                    VALUES(
-                        src.user_id,
-                        src.username,
-                        src.display_name,
-                        src.created_at,
-                        CURRENT_TIMESTAMP(),
-                        NULL,
-                        TRUE
-                    );
-                """
-
+    print("Executing SCD Type 2 MERGE from SQL file...")
     conn.cursor().execute(merge_sql)
     conn.close()
 
@@ -107,19 +84,18 @@ def main():
     for table in fact_tables:
         print(f"Loading {table} ...")
         df = get_postgres_df(spark, table)
-        write_to_snowflake(df, table)
+        write_to_snowflake(df, table, mode="append")
 
     ###
     # Load Users to Staging
     ###
     print("Loading users staging ...")
-    user_df = get_postgres_df(spark, "users")
+    user_df = get_postgres_df(spark, "users").withColumnRenamed("id", "user_id")
     write_to_snowflake(user_df, "stg_users", mode="overwrite")
 
     ###
     # Execute SCD2 Merge
     ###
-    print("Running SCD Type 2 Merge ...")
     run_scd2_merge()
 
     print("Pipeline Finished Successfully")
