@@ -1,4 +1,4 @@
--- Engagement Aggregation job
+-- Engagement Aggregation Job
 -- Purpose: Calculate user engagement metrics based on their activity (posts, comments, likes)
 
 CREATE OR REPLACE TABLE user_engagement_metrics AS
@@ -11,9 +11,12 @@ WITH user_activity AS (
         COUNT(DISTINCT c.id) as total_comments,
         COUNT(DISTINCT l.id) as total_likes
     FROM dim_users u
-    LEFT JOIN posts p ON u.user_id = p.user_id
-    LEFT JOIN comments c ON u.user_id = c.user_id
-    LEFT JOIN likes l ON u.user_id = l.user_id
+    LEFT JOIN posts p
+        ON u.user_id = p.author_id
+    LEFT JOIN comments c
+        ON u.user_id = c.author_id
+    LEFT JOIN likes l
+        ON u.user_id = l.user_id
     WHERE u.is_current = TRUE
     GROUP BY u.user_id, u.username, u.display_name
 )

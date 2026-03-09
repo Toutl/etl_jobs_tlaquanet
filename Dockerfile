@@ -24,5 +24,5 @@ COPY --chown=spark:spark app/ /app/
 # Default command (can be overridden by Airflow)
 CMD ["/opt/spark/bin/spark-submit", \
      "--packages", \
-     "org.postgresql:postgresql:42.7.1,net.snowflake:spark-snowflake_2.12:6.1.0-spark_3.5,net.snowflake:snowflake-jdbc:3.15.0", \
+     "org.postgresql:postgresql:42.7.1,net.snowflake:spark-snowflake_2.12:3.1.7,net.snowflake:snowflake-jdbc:3.15.0", \
      "/app/spark_job_all_tables.py"]
